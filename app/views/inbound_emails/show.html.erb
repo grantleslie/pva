@@ -1,0 +1,40 @@
+<h2>Email</h2>
+
+<div class="card mt-3">
+  <div class="card-body">
+
+    <p>
+      <strong>Date:</strong>
+      <%= @inbound_email.received_at %>
+    </p>
+
+    <p>
+      <strong>Job:</strong>
+      <%= @inbound_email.job&.name %>
+    </p>
+
+    <p>
+      <strong>From:</strong>
+      <%= @inbound_email.from %>
+    </p>
+
+    <p>
+      <strong>To:</strong>
+      <%= @inbound_email.to %>
+    </p>
+
+    <p>
+      <strong>Subject:</strong>
+      <%= @inbound_email.subject %>
+    </p>
+
+    <hr>
+
+    <h5>Body</h5>
+
+    <div style="white-space: pre-wrap;">
+      <%= @inbound_email.text_body.presence || @inbound_email.html_body&.html_safe %>
+    </div>
+
+  </div>
+</div>

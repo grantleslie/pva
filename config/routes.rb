@@ -9,6 +9,9 @@ Rails.application.routes.draw do
   # Defines the root path route ("/")
   root "pages#home"
 
+  get "/emails", to: "pages#inbound_emails"
+
   resources :jobs
+  resources :inbound_emails, only: [:index, :show]
   
 end

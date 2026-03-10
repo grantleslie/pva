@@ -10,10 +10,10 @@ class Job < ApplicationRecord
   }, validate: true
 
   JOB_TYPES = ["email_reader"].freeze
+  MY_DOMAIN = "mypva.io".freeze
 
   before_validation :set_defaults, on: :create
   before_validation :normalize_aliases
-  before_validation :generate_pretty_name, on: :create
 
   validates :name, presence: true
   validates :job_type, presence: true, inclusion: { in: JOB_TYPES }
@@ -25,42 +25,65 @@ class Job < ApplicationRecord
   validates :user_email, format: { with: /\A[a-z0-9_]+\z/ }, allow_blank: true
 
   validate :user_email_must_be_unique_across_aliases
+  validate :pretty_email_must_be_unique_across_aliases
 
   def token_address
-    "#{token}@mypva.io"
+    "#{token}@#{MY_DOMAIN}"
   end
 
   def pretty_address
     return if pretty_email.blank?
-    "#{pretty_email}@mypva.io"
+    "#{pretty_email}@#{MY_DOMAIN}"
   end
 
   def user_address
     return if user_email.blank?
-    "#{user_email}@mypva.io"
+    "#{user_email}@#{MY_DOMAIN}"
   end
 
   def all_inbound_addresses
     [token_address, pretty_address, user_address].compact.uniq
   end
 
-  def user_email_must_be_unique_across_aliases
-    return if user_email.blank?
+  def self.find_by_incoming_addresses(addresses)
+    local_parts = extract_local_parts(addresses)
+    return nil if local_parts.empty?
 
-    normalized = normalize_local_part(user_email)
+    where(
+      "LOWER(token) IN (:parts) OR LOWER(pretty_email) IN (:parts) OR LOWER(user_email) IN (:parts)",
+      parts: local_parts
+    ).first
+  end
 
-    scope = Job.where.not(id: id)
+  def self.extract_local_parts(addresses)
+    Array(addresses)
+      .map { |a| a.to_s.downcase.strip }
+      .filter_map do |email|
+        next if email.blank?
 
-    if scope.where("LOWER(user_email) = :value OR LOWER(pretty_email) = :value", value: normalized).exists?
-      errors.add(:user_email, "is already taken")
-    end
+        local, domain = email.split("@", 2)
+        next if local.blank?
+        next if domain.present? && domain != MY_DOMAIN
+
+        normalize_local_part_static(local)
+      end
+      .uniq
+  end
+
+  def self.normalize_local_part_static(value)
+    value.to_s.downcase.strip
+         .gsub(/\s+/, "_")
+         .gsub(/[^a-z0-9_]/, "")
+         .squeeze("_")
+         .sub(/\A_+/, "")
+         .sub(/_+\z/, "")
   end
 
   private
 
   def set_defaults
     self.token ||= generate_unique_token
-    self.pretty_email ||= generate_unique_pretty_email if pretty_name.present?
+    generate_pretty_name_if_needed
   end
 
   def normalize_aliases
@@ -69,12 +92,7 @@ class Job < ApplicationRecord
   end
 
   def normalize_local_part(value)
-    value.to_s.downcase.strip
-         .gsub(/\s+/, "_")
-         .gsub(/[^a-z0-9_]/, "")
-         .squeeze("_")
-         .sub(/\A_+/, "")
-         .sub(/_+\z/, "")
+    self.class.normalize_local_part_static(value)
   end
 
   def generate_unique_token
@@ -84,34 +102,47 @@ class Job < ApplicationRecord
     end
   end
 
-  def generate_unique_pretty_email
-    base = normalize_local_part(pretty_name)
-    candidate = base
-    counter = 2
+  def generate_pretty_name_if_needed
+    return if pretty_name.present? && pretty_email.present?
 
-    while self.class.exists?(pretty_email: candidate)
-      candidate = "#{base}_#{counter}"
-      counter += 1
-    end
+    loop do
+      first = Faker::Name.first_name
+      last  = Faker::Name.last_name
 
-    candidate
-  end
+      generated_name = "#{first} #{last}"
+      generated_email = normalize_local_part("#{first}_#{last}")
 
-  def generate_pretty_name
-  return if pretty_name.present?
+      next if self.class.where.not(id: id)
+                        .where("LOWER(pretty_email) = :value OR LOWER(user_email) = :value", value: generated_email)
+                        .exists?
 
-  loop do
-    first = Faker::Name.first_name
-    last  = Faker::Name.last_name
-
-    name  = "#{first} #{last}"
-    email = "#{first}_#{last}".downcase
-
-    unless Job.exists?(pretty_email: email)
-      self.pretty_name = name
-      self.pretty_email = email
+      self.pretty_name ||= generated_name
+      self.pretty_email ||= generated_email
       break
     end
   end
-end
+
+  def user_email_must_be_unique_across_aliases
+    return if user_email.blank?
+
+    normalized = normalize_local_part(user_email)
+
+    if self.class.where.not(id: id)
+                 .where("LOWER(user_email) = :value OR LOWER(pretty_email) = :value", value: normalized)
+                 .exists?
+      errors.add(:user_email, "is already taken")
+    end
+  end
+
+  def pretty_email_must_be_unique_across_aliases
+    return if pretty_email.blank?
+
+    normalized = normalize_local_part(pretty_email)
+
+    if self.class.where.not(id: id)
+                 .where("LOWER(pretty_email) = :value OR LOWER(user_email) = :value", value: normalized)
+                 .exists?
+      errors.add(:pretty_email, "conflicts with an existing email alias")
+    end
+  end
 end
