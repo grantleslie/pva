@@ -1,0 +1,56 @@
+<!-- app/views/jobs/_form.html.erb -->
+<%= form_with model: job do |f| %>
+  <% if @job.errors.any? %>
+    <div class="alert alert-danger">
+      <h4><%= pluralize(job.errors.count, "error") %> prevented this job from saving:</h4>
+      <ul class="mb-0">
+        <% job.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="mb-3">
+    <%= f.label :job_type, class: "form-label" %>
+    <%= f.select :job_type,
+          options_for_select([["Email Reader", "email_reader"]], job.job_type),
+          {},
+          class: "form-select" %>
+  </div>
+
+  <div class="mb-3">
+    <%= f.label :name, class: "form-label" %>
+    <%= f.text_field :name, class: "form-control", placeholder: "email reader" %>
+  </div>
+
+  <div class="mb-3">
+    <%= f.label :description, class: "form-label" %>
+    <%= f.text_area :description, rows: 3, class: "form-control", placeholder: "receives and reads emails" %>
+  </div>
+
+  <div class="mb-3">
+    <%= f.label :instructions, class: "form-label" %>
+    <%= f.text_area :instructions,
+          rows: 5,
+          class: "form-control",
+          placeholder: "When emails come in, summarize them and create a task for urgent items." %>
+  </div>
+
+  <% if job.persisted? %>
+    <div class="mb-3">
+      <%= f.label :status, class: "form-label" %>
+      <%= f.select :status,
+            options_for_select(Job.statuses.keys.map { |k| [k.titleize, k] }, job.status),
+            {},
+            class: "form-select" %>
+    </div>
+  <% else %>
+    <%= f.hidden_field :status, value: "active" %>
+  <% end %>
+
+  <div class="d-flex gap-2">
+    <%= f.submit class: "btn btn-primary" %>
+    <%= link_to "Cancel", jobs_path, class: "btn btn-outline-secondary" %>
+  </div>
+<% end %>

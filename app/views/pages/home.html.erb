@@ -1,0 +1,9 @@
+<% if user_signed_in? %>
+<%= link_to "Edit My Profile", edit_registration_path(current_user), class: "dropdown-item" %>     
+<%= link_to "Logout", destroy_user_session_path, data: { turbo_method: :delete }, class: "dropdown-item" %>
+<hr>
+<%= render 'jobs/form', job: @job %> 
+<% else %>
+<%= link_to "Login", new_user_session_path, class: "nav-link", style: "color: darkslategrey;" %>
+<%= link_to "Register", new_user_registration_path, class: "nav-link", style: "color: darkslategrey;" %>
+<% end %>

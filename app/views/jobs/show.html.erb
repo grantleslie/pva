@@ -1,0 +1,64 @@
+<!-- app/views/jobs/show.html.erb -->
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1><%= @job.name %></h1>
+    <div class="d-flex gap-2">
+      <%= link_to "Edit", edit_job_path(@job), class: "btn btn-outline-primary" %>
+      <%= link_to "Back", jobs_path, class: "btn btn-outline-secondary" %>
+    </div>
+  </div>
+
+  <div class="card">
+      <div class="d-flex align-items-center mb-4">
+
+        <div class="rounded-circle bg-light border d-flex align-items-center justify-content-center me-3"
+             style="width:100px;height:100px;">
+          <i class="bi bi-person-fill" style="font-size:50px;color:#6c757d;"></i>
+        </div>
+
+        <div>
+          <h4 class="mb-1"><%= @job.pretty_name %> - <%= @job.pretty_address || "-" %></h4>
+          <p class="text-muted mb-0">
+            Here's your fake Personal Virtual Assistant.
+            Their job is <strong><%= @job.name %></strong>.
+            They will "<%= @job.description %>".
+          </p>
+        </div>
+
+      </div>
+
+      <p><strong>Description:</strong> <%= @job.description %></p>
+      <p><strong>Type:</strong> <%= @job.job_type %></p>
+      <p><strong>Status:</strong> <%= @job.status %></p>
+    
+      <p><strong>Token Email:</strong> <%= @job.token_address %></p>
+      <%= form_with model: @job, url: job_path(@job), method: :patch, local: true do |f| %>
+        <% if @job.errors[:user_email].any? %>
+          <div class="alert alert-danger">
+            <%= @job.errors[:user_email].join(", ") %>
+          </div>
+        <% end %>
+
+        <div class="mb-3">
+          <%= f.label :user_email, "Custom Email", class: "form-label" %>
+          <div class="input-group">
+            <%= f.text_field :user_email,
+                  class: "form-control",
+                  placeholder: "custom_email" %>
+            <span class="input-group-text">@mypva.io</span>
+          </div>
+          <div class="form-text">
+            Must be unique across all assistant email aliases.
+          </div>
+        </div>
+
+        <%= f.submit "Save Email Alias", class: "btn btn-primary" %>
+      <% end %>
+
+      <p><strong>Instructions:</strong></p>
+      <div class="border rounded p-3 bg-light">
+        <%= simple_format(@job.instructions) %>
+      </div>
+    </div>
+  </div>
+</div>

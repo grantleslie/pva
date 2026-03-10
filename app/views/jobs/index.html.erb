@@ -1,0 +1,40 @@
+<!-- app/views/jobs/index.html.erb -->
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Jobs</h1>
+    <%= link_to "New Job", new_job_path, class: "btn btn-primary" %>
+  </div>
+
+  <% if @jobs.any? %>
+    <div class="table-responsive">
+      <table class="table table-striped align-middle">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Status</th>
+            <th>Email</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @jobs.each do |job| %>
+            <tr>
+              <td><%= job.name %></td>
+              <td><%= job.job_type %></td>
+              <td><%= job.status %></td>
+              <td><%= job.user_address || job.pretty_address || job.token_address %></td>
+              <td class="text-end">
+                <%= link_to "View", job_path(job), class: "btn btn-sm btn-outline-primary" %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% else %>
+    <div class="alert alert-light border">
+      No jobs yet.
+    </div>
+  <% end %>
+</div>
